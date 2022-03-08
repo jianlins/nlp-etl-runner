@@ -11,7 +11,7 @@ import org.json.simple.JSONObject;
 
 import java.util.logging.Logger;
 
-public class SimpleScriptRunner {
+public class SingleScriptRunner {
 
 
     /**
@@ -26,10 +26,10 @@ public class SimpleScriptRunner {
     protected HashMap<String, String> failureStr;
     protected File logDir=new File("logs");
     protected SimpleDateFormat date_format = new SimpleDateFormat("MM/dd/yyy HH:mm");
-    private final static Logger LOGGER = Logger.getLogger(SimpleScriptRunner.class.getName());
+    private final static Logger LOGGER = Logger.getLogger(SingleScriptRunner.class.getName());
 
 
-    public SimpleScriptRunner(JSONObject scriptConfig) {
+    public SingleScriptRunner(JSONObject scriptConfig) {
         if (scriptConfig.containsKey("name")) {
             this.scriptName = (String) scriptConfig.get("name");
         } else {
