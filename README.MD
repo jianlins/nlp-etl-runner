@@ -6,6 +6,6 @@ Desipte of the primary goal, the runner itself is relatively generic in design. 
 To configure a runner, use the conf/runner_config_01.json as an example configuration.
 
 To execute a runner, run this command: 
-```bash
+```shell
 java -jar leo-runner.jar gov.va.vinci.leo.Runner {config file location}
 ```
