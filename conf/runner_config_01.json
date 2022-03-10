@@ -4,21 +4,11 @@
       "name": "server",
       "location":"scripts/test1.sh",
       "wait": true,
-      "success": "",
+      "success": "server process successfully",
       "failure": {
-        "type 1 error happened": "Error1",
-        "type 2 error happened": "Error2"
-      }
-    },
-    {
-      "name": "client",
-      "location":"scripts/test2.sh",
-      "wait": true,
-      "success": "",
-      "fail": {
-        "type 1 error happened": "Error1",
-        "type 2 error happened": "Error2"
-      }
+        "type 1 error happened": "Server Error1",
+      },
+      "args": ""
     }
   ]
 }
