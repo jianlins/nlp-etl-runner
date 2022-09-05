@@ -111,7 +111,7 @@ public class SingleScriptRunner {
                             if(failureDict.size()>0){
                                 for(String ind: failureDict.keySet()){
                                     if (line.contains(ind)){
-                                        LOGGER.info("Execution failure ("+failureDict.get(ind)+") indicator detected, finish excecution.");
+                                        LOGGER.warning("Execution failure ("+failureDict.get(ind)+") indicator detected, finish excecution.");
                                         break;
                                     }
                                 }
