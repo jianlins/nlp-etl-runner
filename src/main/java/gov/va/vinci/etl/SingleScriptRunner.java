@@ -1,4 +1,4 @@
-package gov.va.vinci.leo;
+package gov.va.vinci.etl;
 
 import org.apache.commons.io.FileUtils;
 
@@ -11,6 +11,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.json.simple.JSONObject;
 
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SingleScriptRunner {
 
@@ -25,11 +27,10 @@ public class SingleScriptRunner {
     protected String scriptLocation = "";
     protected boolean wait = true;
     protected String successStr = "";
-    protected HashMap<String, String> failureDict = new HashMap<>();
+    protected HashMap<String, HashMap<String,String>> failureDict = new HashMap<>();
     protected File logDir = null;
     protected String args = "";
     protected SimpleDateFormat date_format = new SimpleDateFormat("MM/dd/yyy HH:mm");
-
 
     public SingleScriptRunner(JSONObject scriptConfig) {
         if (scriptConfig.containsKey("location")) {
@@ -59,7 +60,7 @@ public class SingleScriptRunner {
         if (scriptConfig.containsKey("failure")) {
             JSONObject failureStr = (JSONObject) scriptConfig.get("failure");
             for (Object key : failureStr.keySet()) {
-                failureDict.put((String) key, (String) failureStr.get(key));
+                failureDict.put((String) key, (HashMap) failureStr.get(key));
             }
         } else {
             LOGGER.info("The success indication string has not been set in the configuration file.");
@@ -84,21 +85,30 @@ public class SingleScriptRunner {
         }
     }
 
-    public void executeScript() throws IOException {
-        ProcessBuilder pb = new ProcessBuilder(this.scriptLocation, args);
+    public int executeScript() throws IOException {
+        String[]argsArray=args.split(" +");
+        String[]combinedArgs=new String[argsArray.length+1];
+        combinedArgs[0]=this.scriptLocation;
+        System.arraycopy(argsArray, 0, combinedArgs, 1, argsArray.length);
+
+        ProcessBuilder pb = new ProcessBuilder(combinedArgs);
         final StringBuffer sb = new StringBuffer();
         int processComplete = -1;
         pb.redirectErrorStream(true);
+        final int[] status=new int[1];
         try {
+            status[0]=0;
             final Process process = pb.start();
             final InputStream is = process.getInputStream();
             // the background thread watches the output from the process
             new Thread(new Runnable() {
-                public void run() {
+                public void run(){
+                    HashMap<String, Pattern>failureRegex=new HashMap<>();
                     try {
                         BufferedReader reader = new BufferedReader(
                                 new InputStreamReader(is));
                         String line;
+
                         while ((line = reader.readLine()) != null) {
                             LOGGER.info(line);
 
@@ -106,12 +116,15 @@ public class SingleScriptRunner {
 
                             if (successStr.length()>0 && line.contains(successStr)){
                                 LOGGER.info("Execution success indicator detected, finish excecution.");
+                                status[0]=1;
                                 break;
                             }
                             if(failureDict.size()>0){
                                 for(String ind: failureDict.keySet()){
-                                    if (line.contains(ind)){
+                                    if (checkFailure(line, failureDict.get(ind),failureRegex)){
                                         LOGGER.warning("Execution failure ("+failureDict.get(ind)+") indicator detected, finish excecution.");
+                                        status[0]=-1;
+                                        process.destroyForcibly();
                                         break;
                                     }
                                 }
@@ -120,7 +133,7 @@ public class SingleScriptRunner {
                     } catch (IOException e) {
                         LOGGER.warning("Java ProcessBuilder: IOException occured.");
                         LOGGER.warning(e.getMessage());
-                    } finally {
+                    }  finally {
                         try {
                             is.close();
                         } catch (IOException e) {
@@ -129,8 +142,10 @@ public class SingleScriptRunner {
                     }
                 }
             }).start();
-            processComplete = process.waitFor();
-            LOGGER.info("Java ProcessBuilder result:" + processComplete);
+            if (process.isAlive()) {
+                processComplete = process.waitFor();
+                LOGGER.info("Java ProcessBuilder result:" + processComplete);
+            }
         } catch (Exception e) {
             LOGGER.warning(e.getMessage());
         }
@@ -139,6 +154,21 @@ public class SingleScriptRunner {
             File logFile = new File(logDir, "pipeline_" + date_format.format(new Date()) + "_log.txt");
             FileUtils.writeStringToFile(logFile, sb.toString(), StandardCharsets.UTF_8);
         }
+        return status[0];
+    }
+
+    final static boolean checkFailure(String line, HashMap<String, String> stringStringHashMap, HashMap<String, Pattern>  failureRegex) {
+        if (stringStringHashMap.containsKey("text")){
+            return line.contains(stringStringHashMap.get("text"));
+        }else if (stringStringHashMap.containsKey("regex")){
+            String regex=stringStringHashMap.get("regex");
+            if (!failureRegex.containsKey(regex)){
+                Pattern p=Pattern.compile(regex);
+                failureRegex.put(regex, p);
+            }
+            return failureRegex.get(regex).matcher(line).find();
+        }
+        return false;
     }
 
     private void printInstructions() {

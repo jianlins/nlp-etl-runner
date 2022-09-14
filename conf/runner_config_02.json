@@ -6,7 +6,7 @@
       "wait": true,
       "success": "server process successfully",
       "failure": {
-        "type 1 error happened": "Server Error1"
+        "type 1 error happened": {"text":"Server Error1"}
       },
       "args": ""
     },
@@ -16,8 +16,8 @@
       "wait": true,
       "success": "client process successfully",
       "failure": {
-        "type 1 error happened": "Client Error1",
-        "type 2 error happened": "Client Error2"
+        "Client Error1": {"text": "type 1 error"},
+        "Client Error2": {"regex":"type 2 \\w+ happened"}
       },
       "args": ""
     }

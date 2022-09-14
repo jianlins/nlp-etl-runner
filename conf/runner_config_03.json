@@ -9,6 +9,16 @@
         "type 1 error happened": {"text":"Server Error1"}
       },
       "args": ""
+    },
+    {
+      "name": "client",
+      "location":"scripts/test3.sh",
+      "wait": true,
+      "success": "all user listed.",
+      "failure": {
+        "Too many users": {"regex":"Username - \\d\\d"}
+      },
+      "args": "a b c d"
     }
   ]
 }

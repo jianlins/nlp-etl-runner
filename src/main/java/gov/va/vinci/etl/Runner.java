@@ -1,4 +1,4 @@
-package gov.va.vinci.leo;
+package gov.va.vinci.etl;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -18,10 +18,19 @@ public class Runner {
         if (args.length == 0) {
             LOGGER.warning("A configuration file location needs to be specified.");
         }
-        new Runner(args[0]);
+        if (args.length==1)
+            new Runner(args[0]);
+        else
+            new Runner(args[0], args[1].toLowerCase().startsWith("t") || args[1].startsWith("1"));
     }
 
-    public Runner(String configFile) {
+    public Runner(String configFile){
+        execute(configFile, true);
+    }
+    public Runner(String configFile, boolean stopWhenFail) {
+        execute(configFile,stopWhenFail);
+    }
+    public void execute(String configFile, boolean stopWhenFail) {
         File configF = new File(configFile);
         if (!configF.exists()) {
             LOGGER.warning("configuration file doesn't exist, please check: " + configF.getAbsolutePath());
@@ -37,7 +46,11 @@ public class Runner {
             JSONArray scriptsConfig = (JSONArray) config.get("scripts");
             for (Object scriptConfig : scriptsConfig) {
                 SingleScriptRunner srun = new SingleScriptRunner((JSONObject) scriptConfig);
-                srun.executeScript();
+                int success=srun.executeScript();
+                if (stopWhenFail && success<0) {
+                    LOGGER.warning("Execution stopped because of error while processing "+((JSONObject) scriptConfig).get("name"));
+                    break;
+                }
             }
         } catch (FileNotFoundException e) {
             LOGGER.warning(e.getMessage());

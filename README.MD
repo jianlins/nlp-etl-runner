@@ -7,5 +7,5 @@ To configure a runner, use the conf/runner_config_01.json as an example configur
 
 To execute a runner, run this command: 
 ```
-java -jar leo-runner.jar gov.va.vinci.leo.Runner {config file location}
+java -jar leo-runner.jar gov.va.vinci.etl.Runner {config file location}
 ```
