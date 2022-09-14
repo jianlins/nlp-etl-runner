@@ -1,4 +1,4 @@
-#Build setting
+#Build settings
 markdown: kramdown
 theme: minima
 
