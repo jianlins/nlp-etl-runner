@@ -46,10 +46,18 @@ public class Runner {
             JSONArray scriptsConfig = (JSONArray) config.get("scripts");
             for (Object scriptConfig : scriptsConfig) {
                 SingleScriptRunner srun = new SingleScriptRunner((JSONObject) scriptConfig);
-                int success=srun.executeScript();
-                if (stopWhenFail && success<0) {
-                    LOGGER.warning("Execution stopped because of error while processing "+((JSONObject) scriptConfig).get("name"));
-                    break;
+                int repeat=srun.repeat;
+                int[] status=srun.executeTimes(repeat);
+                if (stopWhenFail) {
+                    boolean success=true;
+                    for( int st : status){
+                        if(st<0) {
+                            success=false;
+                            break;
+                        }
+                    }
+                    if (!success)
+                        LOGGER.warning("Execution stopped because of error while processing "+((JSONObject) scriptConfig).get("name"));
                 }
             }
         } catch (FileNotFoundException e) {
@@ -58,6 +66,8 @@ public class Runner {
             LOGGER.warning(e.getMessage());
         } catch (ParseException e) {
             LOGGER.warning(e.getMessage());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 }

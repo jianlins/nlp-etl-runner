@@ -10,6 +10,7 @@ import java.util.*;
 import org.apache.commons.io.FilenameUtils;
 import org.json.simple.JSONObject;
 
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,7 +31,9 @@ public class SingleScriptRunner {
     protected HashMap<String, HashMap<String,String>> failureDict = new HashMap<>();
     protected File logDir = null;
     protected String args = "";
-    protected SimpleDateFormat date_format = new SimpleDateFormat("MM/dd/yyy HH:mm");
+    protected SimpleDateFormat date_format = new SimpleDateFormat("MM/dd/yyy HH:mm:ss");
+    protected int repeat=1;
+    protected int repeatInterval=5;
 
     public SingleScriptRunner(JSONObject scriptConfig) {
         if (scriptConfig.containsKey("location")) {
@@ -51,6 +54,12 @@ public class SingleScriptRunner {
         }
         if (scriptConfig.containsKey("wait")) {
             Object value= scriptConfig.get("name");
+        }
+        if (scriptConfig.containsKey("repeat") && scriptConfig.get("repeat").toString().length()>0){
+            this.repeat=Integer.parseInt(scriptConfig.get("repeat").toString());
+        }
+        if (scriptConfig.containsKey("repeat_interval") && scriptConfig.get("repeat_interval").toString().length()>0){
+            this.repeatInterval=Integer.parseInt(scriptConfig.get("repeat_interval").toString());
         }
         if (scriptConfig.containsKey("success")) {
             this.successStr = (String) scriptConfig.get("success");
@@ -84,6 +93,36 @@ public class SingleScriptRunner {
             LOGGER.info("logdir hasn't been set, will skip logging to local file.");
         }
     }
+
+    public int[] executeTimes(int times) throws IOException, InterruptedException {
+        String[]argsArray=args.split(" +");
+        String[]combinedArgs=new String[argsArray.length+1];
+        combinedArgs[0]=this.scriptLocation;
+        System.arraycopy(argsArray, 0, combinedArgs, 1, argsArray.length);
+        final int[] status=new int[times];
+        ArrayList<CmdRunnable>runners=new ArrayList<>();
+        for (int i=0;i<times;i++) {
+            ProcessBuilder pb = new ProcessBuilder(combinedArgs);
+            Process process = pb.start();
+            CmdRunnable runner=new CmdRunnable(i, scriptName, process, LOGGER,  successStr, failureDict);
+            runners.add(runner);
+            new Thread(runner).start();
+        }
+        if (wait){
+            for (int id=0;id<times;id++){
+                if(runners.get(id).getProcess().isAlive()){
+                    TimeUnit.SECONDS.sleep(5);
+                    LOGGER.info("Java Process ("+scriptName+":"+id+") current status:" + runners.get(id).status);
+                    id--;
+                }else{
+                    LOGGER.info("Java Process ("+scriptName+":"+id+") result:" + runners.get(id).status);
+                    status[id]=runners.get(id).status;
+                }
+            }
+        }
+        return status;
+    }
+
 
     public int executeScript() throws IOException {
         String[]argsArray=args.split(" +");
@@ -131,7 +170,7 @@ public class SingleScriptRunner {
                             }
                         }
                     } catch (IOException e) {
-                        LOGGER.warning("Java ProcessBuilder: IOException occured.");
+                        LOGGER.warning("Java ProcessBuilder: IOException occured while processing "+scriptName+".");
                         LOGGER.warning(e.getMessage());
                     }  finally {
                         try {

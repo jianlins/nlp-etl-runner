@@ -1,0 +1,26 @@
+{
+  "scripts": [
+    {
+      "name": "server",
+      "location":"scripts/test3.sh",
+      "wait": true,
+      "repeat": 3,
+      "success": "all user list",
+      "failure": {
+        "type 1 error happened": {"text":"Server Error1"}
+      },
+      "args": "a b c"
+    },
+    {
+      "name": "client",
+      "location":"scripts/test1.sh",
+      "wait": true,
+      "success": "test1 finished",
+      "failure": {
+        "Client Error1": {"text": "type 1 error"},
+        "Client Error2": {"regex":"type 2 \\w+ happened"}
+      },
+      "args": ""
+    }
+  ]
+}

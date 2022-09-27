@@ -26,4 +26,9 @@ class RunnerTest {
     void main5() {
         Runner.main(new String[]{"conf/runner_config_04.json","true"});
     }
+
+    @Test
+    void main6() {
+        Runner.main(new String[]{"conf/runner_config_05.json","true"});
+    }
 }
