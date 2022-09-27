@@ -13,7 +13,7 @@
     },
     {
       "name": "client",
-      "location":"scripts/test1.sh",
+      "location":"scripts/test2.sh",
       "wait": true,
       "success": "test1 finished",
       "failure": {
