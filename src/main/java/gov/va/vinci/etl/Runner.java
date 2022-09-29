@@ -1,14 +1,16 @@
 package gov.va.vinci.etl;
 
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+
+
+import com.google.gson.Gson;
+import com.google.gson.internal.LinkedTreeMap;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.logging.Logger;
 
 public class Runner {
@@ -36,16 +38,16 @@ public class Runner {
             LOGGER.warning("configuration file doesn't exist, please check: " + configF.getAbsolutePath());
             System.exit(0);
         }
-        JSONParser parser = new JSONParser();
+        Gson parser = new Gson();
         try {
-            JSONObject config = (JSONObject) parser.parse(new FileReader(configF));
+            LinkedHashMap config = parser.fromJson(new FileReader(configF), LinkedHashMap.class);
             if (!config.containsKey("scripts")) {
                 LOGGER.warning("scripts configuration needs start with 'scripts'.");
                 return;
             }
-            JSONArray scriptsConfig = (JSONArray) config.get("scripts");
+            ArrayList scriptsConfig = (ArrayList) config.get("scripts");
             for (Object scriptConfig : scriptsConfig) {
-                SingleScriptRunner srun = new SingleScriptRunner((JSONObject) scriptConfig);
+                SingleScriptRunner srun = new SingleScriptRunner((LinkedTreeMap) scriptConfig);
                 int repeat=srun.repeat;
                 int[] status=srun.executeTimes(repeat);
                 if (stopWhenFail) {
@@ -57,14 +59,12 @@ public class Runner {
                         }
                     }
                     if (!success)
-                        LOGGER.warning("Execution stopped because of error while processing "+((JSONObject) scriptConfig).get("name"));
+                        LOGGER.warning("Execution stopped because of error while processing "+((LinkedTreeMap) scriptConfig).get("name"));
                 }
             }
         } catch (FileNotFoundException e) {
             LOGGER.warning(e.getMessage());
         } catch (IOException e) {
-            LOGGER.warning(e.getMessage());
-        } catch (ParseException e) {
             LOGGER.warning(e.getMessage());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);

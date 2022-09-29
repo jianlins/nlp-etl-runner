@@ -1,18 +1,18 @@
 package gov.va.vinci.etl;
 
+import com.google.gson.internal.LinkedTreeMap;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.util.*;
-
-import org.apache.commons.io.FilenameUtils;
-import org.json.simple.JSONObject;
-
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SingleScriptRunner {
@@ -28,14 +28,14 @@ public class SingleScriptRunner {
     protected String scriptLocation = "";
     protected boolean wait = true;
     protected String successStr = "";
-    protected HashMap<String, HashMap<String,String>> failureDict = new HashMap<>();
+    protected HashMap<String, Map<String,String>> failureDict = new HashMap<>();
     protected File logDir = null;
     protected String args = "";
     protected SimpleDateFormat date_format = new SimpleDateFormat("MM/dd/yyy HH:mm:ss");
     protected int repeat=1;
     protected int repeatInterval=5;
 
-    public SingleScriptRunner(JSONObject scriptConfig) {
+    public SingleScriptRunner(LinkedTreeMap scriptConfig) {
         if (scriptConfig.containsKey("location")) {
             this.scriptLocation = (String) scriptConfig.get("location");
             this.scriptLocation=new File(this.scriptLocation).getAbsolutePath();
@@ -56,7 +56,7 @@ public class SingleScriptRunner {
             Object value= scriptConfig.get("name");
         }
         if (scriptConfig.containsKey("repeat") && scriptConfig.get("repeat").toString().length()>0){
-            this.repeat=Integer.parseInt(scriptConfig.get("repeat").toString());
+            this.repeat=(int)Double.parseDouble(scriptConfig.get("repeat").toString());
         }
         if (scriptConfig.containsKey("repeat_interval") && scriptConfig.get("repeat_interval").toString().length()>0){
             this.repeatInterval=Integer.parseInt(scriptConfig.get("repeat_interval").toString());
@@ -67,9 +67,9 @@ public class SingleScriptRunner {
             LOGGER.info("The success indication string has not been set in the configuration file.");
         }
         if (scriptConfig.containsKey("failure")) {
-            JSONObject failureStr = (JSONObject) scriptConfig.get("failure");
+            LinkedTreeMap failureStr = (LinkedTreeMap) scriptConfig.get("failure");
             for (Object key : failureStr.keySet()) {
-                failureDict.put((String) key, (HashMap) failureStr.get(key));
+                failureDict.put((String) key, (LinkedTreeMap) failureStr.get(key));
             }
         } else {
             LOGGER.info("The success indication string has not been set in the configuration file.");
@@ -196,7 +196,7 @@ public class SingleScriptRunner {
         return status[0];
     }
 
-    final static boolean checkFailure(String line, HashMap<String, String> stringStringHashMap, HashMap<String, Pattern>  failureRegex) {
+    final static boolean checkFailure(String line, Map<String, String> stringStringHashMap, HashMap<String, Pattern>  failureRegex) {
         if (stringStringHashMap.containsKey("text")){
             return line.contains(stringStringHashMap.get("text"));
         }else if (stringStringHashMap.containsKey("regex")){

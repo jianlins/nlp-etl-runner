@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
@@ -15,7 +16,7 @@ public class CmdRunnable implements Runnable {
     protected InputStream is;
 
     protected String successStr = "";
-    protected HashMap<String, HashMap<String, String>> failureDict = new HashMap<>();
+    protected HashMap<String,  Map<String, String>> failureDict = new HashMap<>();
 
     protected int status=0;
 
@@ -23,7 +24,7 @@ public class CmdRunnable implements Runnable {
 
     protected String name="";
 
-    public CmdRunnable(int id, String name, Process process, Logger LOGGER, String successStr, HashMap<String, HashMap<String, String>> failureDict) {
+    public CmdRunnable(int id, String name, Process process, Logger LOGGER, String successStr, HashMap<String, Map<String, String>> failureDict) {
         this.id = id;
         this.name=name;
         this.LOGGER = LOGGER;
@@ -77,7 +78,7 @@ public class CmdRunnable implements Runnable {
         }
     }
 
-    final static boolean checkFailure(String line, HashMap<String, String> stringStringHashMap, HashMap<String, Pattern> failureRegex) {
+    final static boolean checkFailure(String line, Map<String, String> stringStringHashMap, HashMap<String, Pattern> failureRegex) {
         if (stringStringHashMap.containsKey("text")) {
             return line.contains(stringStringHashMap.get("text"));
         } else if (stringStringHashMap.containsKey("regex")) {
