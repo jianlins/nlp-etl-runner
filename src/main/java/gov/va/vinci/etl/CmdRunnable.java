@@ -53,22 +53,22 @@ public class CmdRunnable implements Runnable {
             while ((line = reader.readLine()) != null || (errorLine = ereader.readLine()) != null) {
                 if (LOGGER.isLoggable(Level.INFO)) {
                     if (line != null && line.trim().length()>0)
-                        LOGGER.logp(Level.INFO, "", "", line);
+                        LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", line);
                     if (errorLine != null && errorLine.trim().length()>0)
-                        LOGGER.logp(Level.INFO, "", "", errorLine);
+                        LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", errorLine);
                 }
                 sb.append(line).append('\n');
                 sb.append(errorLine).append('\n');
 
                 if (successStr.length() > 0 && ((line!=null && line.contains(successStr)) || (errorLine!=null && errorLine.contains(successStr)))) {
-                    LOGGER.logp(Level.INFO, "", "", "Process (" + name + ":" + id + ") execution success indicator detected, finish excecution.");
+                    LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", "Process (" + name + ":" + id + ") execution success indicator detected, finish excecution.");
                     status = 1;
                     break;
                 }
                 if (failureDict.size() > 0) {
                     for (String ind : failureDict.keySet()) {
                         if (checkFailure(line, failureDict.get(ind), failureRegex) || checkFailure(errorLine, failureDict.get(ind), failureRegex)) {
-                            LOGGER.warning("Process " + name + ":" + id + " execution failure (" + failureDict.get(ind) + ") indicator detected, finish excecution.");
+                            LOGGER.warning("Process " + this.name+"["+this.id+"]"+ " execution failure (" + failureDict.get(ind) + ") indicator detected, finish excecution.");
                             status = -1;
                             process.destroyForcibly();
                             break;
