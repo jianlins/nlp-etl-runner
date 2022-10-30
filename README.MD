@@ -15,8 +15,8 @@ To execute a runner, run this command:
 
 If you need to suppress the logging information, add log configuration in the command\
 ```bash
- java -Djava.util.logging.config.file=logging.properties -jar nlp-etl-runner-jdk8-jar-with-dependencies.jar <config json file path>
+ java -Dlog4j.configurationFile=src/main/resources/log4j2.xml -jar nlp-etl-runner-jdk8-jar-with-dependencies.jar <config json file path>
  # or if using jdk 11
- java -Djava.util.logging.config.file=logging.properties -jar nlp-etl-runner-jdk11-jar-with-dependencies.jar <config json file path>
+ java -Dlog4j.configurationFile=src/main/resources/log4j2.xml -jar nlp-etl-runner-jdk11-jar-with-dependencies.jar <config json file path>
  
 ```
