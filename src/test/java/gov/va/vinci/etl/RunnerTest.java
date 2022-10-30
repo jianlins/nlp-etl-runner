@@ -9,7 +9,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.LinkedHashMap;
 import java.util.logging.LogManager;
 
@@ -79,6 +82,49 @@ class RunnerTest {
         srun.executeTimes(2);
         assertThat(output).contains("(test_run:0) result:1");
         assertThat(output).contains("(test_run:1) result:1");
+    }
+
+    @Test
+    @EnabledOnOs({OS.WINDOWS})
+    void TestSingleScriptRunner3(CapturedOutput output) throws IOException, InterruptedException {
+        LinkedHashMap scriptConfig = new LinkedHashMap<>();
+        scriptConfig.put("name", "test_os_cmd");
+        scriptConfig.put("location", "cmd.exe");
+        scriptConfig.put("args","/C echo test echo command");
+        scriptConfig.put("success","test echo command");
+        SingleScriptRunner srun = new SingleScriptRunner(scriptConfig);
+        srun.executeTimes(1);
+    }
+
+    @Test
+    @EnabledOnOs({OS.WINDOWS})
+    void TestRepeatWithID(CapturedOutput output) throws IOException, InterruptedException {
+        LinkedHashMap scriptConfig = new LinkedHashMap<>();
+        scriptConfig.put("name", "test_os_cmd");
+        scriptConfig.put("location", "src/test/resources/echo_args.bat");
+        scriptConfig.put("args","-file=test.txt -url=localhost");
+        scriptConfig.put("wait","true");
+        scriptConfig.put("generate_repeat_id","true");
+        SingleScriptRunner srun = new SingleScriptRunner(scriptConfig);
+        srun.executeTimes(2);
+        assertThat(output).contains("test_os_cmd[1]:\t1 -file=test.txt -url=localhost");
+        assertThat(output).contains("test_os_cmd[0]:\t0 -file=test.txt -url=localhost");
+    }
+
+    @Test
+    @EnabledOnOs({OS.WINDOWS})
+    void TestPB(CapturedOutput output) throws IOException, InterruptedException {
+        ProcessBuilder pb=new ProcessBuilder("src/test/resources/echo_args.bat","test echo");
+        Process process = pb.start();
+        InputStream is = process.getInputStream();
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(is));
+        String line = "";
+        while ((line = reader.readLine()) != null){
+            System.out.println(line);
+        }
+        process.waitFor();
+
     }
 
     @AfterEach

@@ -1,9 +1,10 @@
 package gov.va.vinci.etl;
 
 
-
 import com.google.gson.Gson;
 import com.google.gson.internal.LinkedTreeMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -11,14 +12,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.logging.Logger;
 
 public class Runner {
-    private final static Logger LOGGER = Logger.getLogger(Runner.class.getName());
+    private final static Logger LOGGER = LogManager.getLogger();
 
     public static void main(String[] args) {
         if (args.length == 0) {
-            LOGGER.warning("A configuration file location needs to be specified.");
+            LOGGER.warn("A configuration file location needs to be specified.");
         }
         if (args.length==1)
             new Runner(args[0]);
@@ -35,14 +35,14 @@ public class Runner {
     public void execute(String configFile, boolean stopWhenFail) {
         File configF = new File(configFile);
         if (!configF.exists()) {
-            LOGGER.warning("configuration file doesn't exist, please check: " + configF.getAbsolutePath());
+            LOGGER.warn("configuration file doesn't exist, please check: " + configF.getAbsolutePath());
             System.exit(0);
         }
         Gson parser = new Gson();
         try {
             LinkedHashMap config = parser.fromJson(new FileReader(configF), LinkedHashMap.class);
             if (!config.containsKey("scripts")) {
-                LOGGER.warning("scripts configuration needs start with 'scripts'.");
+                LOGGER.warn("scripts configuration needs start with 'scripts'.");
                 return;
             }
             ArrayList scriptsConfig = (ArrayList) config.get("scripts");
@@ -58,14 +58,16 @@ public class Runner {
                             break;
                         }
                     }
-                    if (!success)
-                        LOGGER.warning("Execution stopped because of error while processing "+((LinkedTreeMap) scriptConfig).get("name"));
+                    if (!success) {
+                        LOGGER.warn("Execution stopped because of error while processing elt script:\"" +configFile+"\"\n\tat step: \""+ ((LinkedTreeMap) scriptConfig).get("name")+"\"");
+                        break;
+                    }
                 }
             }
         } catch (FileNotFoundException e) {
-            LOGGER.warning(e.getMessage());
+            LOGGER.warn(e.getMessage());
         } catch (IOException e) {
-            LOGGER.warning(e.getMessage());
+            LOGGER.warn(e.getMessage());
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

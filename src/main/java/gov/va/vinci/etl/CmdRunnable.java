@@ -6,13 +6,21 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.config.Configuration;
+
+
+ import org.apache.logging.log4j.core.LoggerContext;
+ import org.apache.logging.log4j.core.config.Configuration;
+ import org.apache.logging.log4j.core.config.LoggerConfig;
 public class CmdRunnable implements Runnable {
     protected int id;
-    protected Logger LOGGER;
+    private final static Logger LOGGER = LogManager.getLogger();
 
     protected InputStream is, es;
 
@@ -23,73 +31,86 @@ public class CmdRunnable implements Runnable {
 
     protected Process process;
 
+    protected ProcessBuilder pb;
+
     protected String name = "";
 
-    public CmdRunnable(int id, String name, Process process, Logger LOGGER, String successStr, HashMap<String, Map<String, String>> failureDict) {
+    private boolean wait = true;
+
+    public CmdRunnable(int id, String name, ProcessBuilder pb, boolean wait, String successStr, HashMap<String, Map<String, String>> failureDict) {
         this.id = id;
         this.name = name;
-        this.LOGGER = LOGGER;
-        this.is = process.getInputStream();
-        this.es = process.getErrorStream();
+        this.pb = pb;
         this.successStr = successStr;
         this.failureDict = failureDict;
-        this.process = process;
-
-
+        this.wait = wait;
+        try {
+            this.process = pb.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         // store parameter for later user
     }
 
     public void run() {
-        StringBuffer sb = new StringBuffer();
         HashMap<String, Pattern> failureRegex = new HashMap<>();
         try {
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(is));
-            BufferedReader ereader = new BufferedReader(
-                    new InputStreamReader(es));
-            String line = "";
-            String errorLine = "";
+            if (wait) {
+                this.is = process.getInputStream();
+                this.es = process.getErrorStream();
+                StringBuffer sb = new StringBuffer();
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(is));
+                BufferedReader ereader = new BufferedReader(
+                        new InputStreamReader(es));
+                String line = "";
+                String errorLine = "";
 
-            while ((line = reader.readLine()) != null || (errorLine = ereader.readLine()) != null) {
-                if (LOGGER.isLoggable(Level.INFO)) {
-                    if (line != null && line.trim().length()>0)
-                        LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", line);
-                    if (errorLine != null && errorLine.trim().length()>0)
-                        LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", errorLine);
-                }
-                sb.append(line).append('\n');
-                sb.append(errorLine).append('\n');
+                while ((line = reader.readLine()) != null || (errorLine = ereader.readLine()) != null) {
+                    if (LOGGER.isInfoEnabled()) {
+                        if (line != null && line.trim().length() > 0) {
+                            LOGGER.info(this.name + "[" + this.id + "]"+":\t"+line);
+                        }
+                        if (errorLine != null && errorLine.trim().length() > 0)
+                            LOGGER.warn(this.name + "[" + this.id + "]"+":\t"+ errorLine);
+                    }
+                    sb.append(line).append('\n');
+                    sb.append(errorLine).append('\n');
 
-                if (successStr.length() > 0 && ((line!=null && line.contains(successStr)) || (errorLine!=null && errorLine.contains(successStr)))) {
-                    LOGGER.logp(Level.INFO, this.name+"["+this.id+"]", "", "Process (" + name + ":" + id + ") execution success indicator detected, finish excecution.");
-                    status = 1;
-                    break;
-                }
-                if (failureDict.size() > 0) {
-                    for (String ind : failureDict.keySet()) {
-                        if (checkFailure(line, failureDict.get(ind), failureRegex) || checkFailure(errorLine, failureDict.get(ind), failureRegex)) {
-                            LOGGER.warning("Process " + this.name+"["+this.id+"]"+ " execution failure (" + failureDict.get(ind) + ") indicator detected, finish excecution.");
-                            status = -1;
-                            process.destroyForcibly();
-                            break;
+                    if (successStr.length() > 0 && ((line != null && line.contains(successStr)) || (errorLine != null && errorLine.contains(successStr)))) {
+                        LOGGER.info(this.name + "[" + this.id + "]:\tProcess (" + name + ":" + id + ") execution success indicator detected, finish excecution.");
+                        status = 1;
+                        break;
+                    }
+                    if (failureDict.size() > 0) {
+                        for (String ind : failureDict.keySet()) {
+                            if (checkFailure(line, failureDict.get(ind), failureRegex) || checkFailure(errorLine, failureDict.get(ind), failureRegex)) {
+                                LOGGER.error("Process " + this.name + "[" + this.id + "]" + " execution failure (" + failureDict.get(ind) + ") indicator detected, finish excecution.");
+                                status = -1;
+                                process.destroyForcibly();
+                                break;
+                            }
                         }
                     }
                 }
             }
         } catch (IOException e) {
-            LOGGER.warning("Java ProcessBuilder: IOException occured in process (" + name + ":" + id + ").");
-            LOGGER.warning(e.getMessage());
+            LOGGER.error("Java ProcessBuilder: IOException occured in process (" + name + ":" + id + ").");
+            LOGGER.error(e.getMessage());
         } finally {
             try {
-                is.close();
+                if (is != null)
+                    is.close();
+                if (es != null)
+                    es.close();
             } catch (IOException e) {
-                LOGGER.warning(e.getMessage());
+                LOGGER.warn(e.getMessage());
             }
         }
     }
 
     final static boolean checkFailure(String line, Map<String, String> stringStringHashMap, HashMap<String, Pattern> failureRegex) {
-        if (line==null || line.length()==0)
+        if (line == null || line.length() == 0)
             return false;
         if (stringStringHashMap.containsKey("text")) {
             return line.contains(stringStringHashMap.get("text"));
